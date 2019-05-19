@@ -10,7 +10,10 @@
   pushing -> built
   pushing -> failed
 */
-import * as Terminal from 'xterm';
+import { Terminal } from 'xterm';
+import { fit } from 'xterm/lib/addons/fit/fit';
+//Terminal.applyAddon(fit);
+
 import Clipboard from 'clipboard';
 import 'xterm/lib/xterm.css';
 import 'bootstrap';
@@ -23,10 +26,6 @@ import { getPathType, updatePathText } from './src/path';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/css/bootstrap-theme.min.css';
 import '../index.css';
-
-// FIXME: Can not seem to import this addon from npm
-// See https://github.com/xtermjs/xterm.js/issues/1018 for more details
-import {fit} from './vendor/xterm/addons/fit';
 
 var BASE_URL = $('#base-url').data().url;
 
@@ -146,7 +145,7 @@ function build(providerSpec, log, path, pathType) {
   image.onStateChange('*', function(oldState, newState, data) {
     if (data.message !== undefined) {
       log.write(data.message);
-      log.fit();
+      fit(log); //log.fit();
     } else {
       console.log(data);
     }
@@ -207,11 +206,11 @@ function setUpLog() {
     disableStdin: true
   });
 
-  log.open(document.getElementById('log'), false);
-  log.fit();
+  log.open(document.getElementById('log'));
+  fit(log); //log.fit();
 
   $(window).resize(function() {
-    log.fit();
+    fit(log); //log.fit();
   });
 
   var $panelBody = $("div.panel-body");
@@ -228,8 +227,10 @@ function setUpLog() {
   log.toggle = function () {
     if ($panelBody.hasClass('hidden')) {
       log.show();
+      fit(log);
     } else {
       log.hide();
+      fit(log);
     }
   };
 

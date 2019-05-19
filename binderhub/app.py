@@ -444,6 +444,9 @@ class BinderHub(Application):
                 kubernetes.config.load_kube_config()
             self.tornado_settings["kubernetes_client"] = self.kube_client = kubernetes.client.CoreV1Api()
 
+        else:
+            self.tornado_settings["kubernetes_client"] = None
+
 
         # times 2 for log + build threads
         self.build_pool = ThreadPoolExecutor(self.concurrent_build_limit * 2)
