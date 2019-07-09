@@ -110,6 +110,21 @@ class AboutHandler(BaseHandler):
         )
 
 
+class AutodetectHandler(BaseHandler):
+    """Serve a just-do-the-right-thing page"""
+    async def get(self):
+        referrer = self.request.headers.get('Referer', '')
+        self.render_template(
+            "autodetect.html",
+            base_url=self.settings['base_url'],
+            submit=False,
+            referrer=referrer,
+            google_analytics_code=self.settings['google_analytics_code'],
+            google_analytics_domain=self.settings['google_analytics_domain'],
+            extra_footer_scripts=self.settings['extra_footer_scripts'],
+        )
+
+
 class VersionHandler(BaseHandler):
     """Serve information about versions running"""
     async def get(self):

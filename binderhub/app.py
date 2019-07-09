@@ -24,7 +24,7 @@ from traitlets import Unicode, Integer, Bool, Dict, validate, TraitError, defaul
 from traitlets.config import Application
 from jupyterhub.services.auth import HubOAuthCallbackHandler
 
-from .base import AboutHandler, Custom404, VersionHandler
+from .base import AboutHandler, AutodetectHandler, Custom404, VersionHandler
 from .build import Build
 from .builder import BuildHandler
 from .launcher import Launcher
@@ -597,6 +597,7 @@ class BinderHub(Application):
                 tornado.web.StaticFileHandler,
                 {'path': os.path.join(self.tornado_settings['static_path'], 'images')}),
             (r'/about', AboutHandler),
+            (r'/autodetect', AutodetectHandler),
             (r'/', MainHandler),
             (r'.*', Custom404),
         ]

@@ -19,6 +19,7 @@ import 'event-source-polyfill';
 import BinderImage from './src/image';
 import { markdownBadge, rstBadge } from './src/badge';
 import { getPathType, updatePathText } from './src/path';
+import { autodetect } from './src/autodetect';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/css/bootstrap-theme.min.css';
@@ -126,6 +127,10 @@ function updateUrls(formValues) {
                formValues.pathType
             );
 
+  updateLinkUrls(url);
+}
+
+function updateLinkUrls(url) {
   if ((url||'').trim().length > 0){
     // update URLs and links (badges, etc.)
     $("#badge-link").attr('href', url);
@@ -333,9 +338,58 @@ function loadingMain(providerSpec) {
   return false;
 }
 
+function autodetectMain(http_referrer) {
+  var log = setUpLog();
+
+  // Default value will be the HTTP Referer header sent to the server,
+  // if this isn't set try the javascript referrer instead
+  $("#mybinder-referrer").val(http_referrer || document.referrer);
+  autodetectUrl($("#mybinder-referrer").value);
+
+  $('#mybinder-referrer').on('input change', function() {
+    autodetectUrl(this.value);
+  });
+
+  $('#build-form').on('submit', function(e){
+    e.preventDefault();
+    // console.log('Redirecting to ' + $("#mybinder-info").text());
+    document.location = $('#mybinder-info').text();
+  });
+
+  $('#toggle-badge-snippet').on('click', function() {
+    var badgeSnippets = $('#badge-snippets');
+    if (badgeSnippets.hasClass('hidden')) {
+        badgeSnippets.removeClass('hidden');
+        $("#badge-snippet-caret").removeClass("glyphicon-triangle-right");
+        $("#badge-snippet-caret").addClass("glyphicon-triangle-bottom");
+    } else {
+        badgeSnippets.addClass('hidden');
+        $("#badge-snippet-caret").removeClass("glyphicon-triangle-bottom");
+        $("#badge-snippet-caret").addClass("glyphicon-triangle-right");
+    }
+    return false;
+  });
+}
+
+function autodetectUrl(input) {
+  var mybinderurl = autodetect(input || '');
+  var mybinder;
+  if (mybinderurl) {
+      mybinder = document.createElement("a");
+      mybinder.textContent = mybinderurl;
+      mybinder.setAttribute("href", mybinderurl);
+  } else {
+    mybinder = document.createTextNode("Unable to find mybinder repo, try pasting or updating your URL above.");
+  }
+  $("#mybinder-info").empty().append(mybinder);
+  updateLinkUrls(mybinderurl);
+  $("#submit").prop("disabled", !mybinderurl);
+}
+
 // export entrypoints
 window.loadingMain = loadingMain;
 window.indexMain = indexMain;
+window.autodetectMain = autodetectMain;
 
 // Load the clipboard after the page loads so it can find the buttons it needs
 window.onload = function() {

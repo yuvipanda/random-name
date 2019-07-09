@@ -1,0 +1,86 @@
+{% extends "page.html" %}
+
+{% block head %}
+<meta id="base-url" data-url="{{base_url}}">
+<meta id="badge-base-url" data-url="{{badge_base_url}}">
+<script src="{{static_url("dist/bundle.js")}}"></script>
+{{ super() }}
+{% endblock head %}
+
+{% block main %}
+<div id="main" class="container">
+  <div class="row">
+    <div class="col-lg-10 col-lg-offset-1">
+      {% block header %}
+      <div id="header" class="text-center">
+        <h3>Turn a Git repo into a collection of interactive notebooks</h3>
+      </div>
+      {% endblock header %}
+
+      {% block form %}
+      <form id="build-form" class="form jumbotron">
+        <h4 id="form-header" class='row'>Build and launch a repository</h4>
+
+        <div class="form-row row">
+
+        <div class="form-group col-md-10">
+          <label for="repository">Repository URL</label>
+          <input class="form-control" type="text" id="mybinder-referrer" data-lpignore="true" placeholder="Repository URL" value="" />
+        </div>
+        <div class="form-group col-md-2">
+          <div class="btn-group" id="launch-buttons">
+            <button id="submit" class="btn-submit" type="submit">launch</button>
+          </div>
+        </div>
+        </div>
+
+        <div class="url row">
+          <div class="dropdownmenu">
+            <label>Copy the URL below and share your Binder with others:</label>
+          </div>
+          <div class="url-row">
+            <pre id="mybinder-info"></pre>
+            <img class="icon clipboard" src="{{static_url("images/copy-icon-black.svg")}}" data-clipboard-target="#mybinder-info" alt="Copy to clipboard">
+          </div>
+        </div>
+
+      <div class="badges row">
+            <div class="dropdownmenu" id="toggle-badge-snippet">
+              <label>Copy the text below, then paste into your README to show a binder badge: <img id="badge" src="{{static_url("images/badge_logo.svg")}}"></label>
+              <a id="badge-link"></a>
+              <a href="#" title="show badge snippets"><span id="badge-snippet-caret" class="glyphicon glyphicon-triangle-right"></span></a>
+            </div>
+            <div id="badge-snippets" class="hidden">
+              <!--Markdown section-->
+              <div  class="badge-snippet-row">
+                 <pre id="markdown-badge-snippet" data-default="Fill in the fields to see the markdown badge snippet."></pre>
+                 <img class="icon" src="{{static_url("images/markdown-icon.svg")}}">
+                 <img class="icon clipboard"
+                    src="{{static_url("images/copy-icon-black.svg")}}"
+                    data-clipboard-target="#markdown-badge-snippet"
+                    alt="Copy markdown link to clipboard">
+              </div>
+              <!--RST section-->
+              <div  class="badge-snippet-row">
+                  <pre id="rst-badge-snippet" data-default="Fill in the fields to see the rST badge snippet."></pre>
+                  <img class="icon" src="{{static_url("images/rst-icon.svg")}}">
+                  <img class="icon clipboard" src="{{static_url("images/copy-icon-black.svg")}}"
+                    data-clipboard-target="#rst-badge-snippet"
+                    alt="Copy rst link to clipboard">
+              </div>
+            </div>
+        </div>
+
+      </form>
+      {% endblock form %}
+    </div>
+  </div>
+</div>
+{% endblock main %}
+
+{% block footer %}
+{{ super () }}
+<script type="text/javascript">
+autodetectMain("{{referrer}}");
+</script>
+{% endblock footer %}
