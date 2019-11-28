@@ -35,6 +35,7 @@ async def test_build(app, needs_build, needs_launch, always_build, slug, pytestc
     r = await async_requests.get(build_url, stream=True)
     r.raise_for_status()
     events = []
+    launch_events = 0
     async for line in async_requests.iter_lines(r):
         line = line.decode('utf8', 'replace')
         if line.startswith('data:'):
@@ -42,7 +43,14 @@ async def test_build(app, needs_build, needs_launch, always_build, slug, pytestc
             events.append(event)
             assert 'message' in event
             sys.stdout.write(event['message'])
+            if event.get('phase', '') == 'launching' \
+               and not event['message'].startswith('Launching server...') \
+               and not event['message'].startswith('Launch attempt '):
+                # skip standard launching events of builder
+                # we are interested in launching events from spawner
+                launch_events += 1
 
+    assert launch_events > 0
     final = events[-1]
     assert 'phase' in final
     assert final['phase'] == 'ready'

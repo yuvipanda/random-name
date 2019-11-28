@@ -9,12 +9,15 @@ import string
 from urllib.parse import urlparse
 import uuid
 import os
+from datetime import timedelta
 
 from tornado.log import app_log
 from tornado import web, gen
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPError
 from traitlets.config import LoggingConfigurable
 from traitlets import Integer, Unicode, Bool
+
+from .utils import url_path_join
 
 # pattern for checking if it's an ssh repo and not a URL
 # used only after verifying that `://` is not present
@@ -49,6 +52,13 @@ class Launcher(LoggingConfigurable):
         Time (seconds) to wait between retries for Hub API requests.
 
         Time is scaled exponentially by the retry attempt (i.e. 2, 4, 8, 16 seconds)
+        """
+    )
+    launch_timeout = Integer(
+        600,
+        config=True,
+        help="""
+        Wait this amount of time until server is ready, raise TimeoutError otherwise.
         """
     )
 
@@ -117,7 +127,7 @@ class Launcher(LoggingConfigurable):
         # add a random suffix to avoid collisions for users on the same image
         return '{}-{}'.format(prefix, ''.join(random.choices(SUFFIX_CHARS, k=SUFFIX_LENGTH)))
 
-    async def launch(self, image, username, server_name='', repo_url=''):
+    async def launch(self, image, username, server_name='', repo_url='', event_callback=None):
         """Launch a server for a given image
 
         - creates a temporary user on the Hub if authentication is not enabled
@@ -171,20 +181,42 @@ class Launcher(LoggingConfigurable):
             )
             if resp.code == 202:
                 # Server hasn't actually started yet
-                # We wait for it!
-                # NOTE: This ends up being about ten minutes
-                for i in range(64):
-                    user_data = await self.get_user_data(username)
-                    if user_data['servers'][server_name]['ready']:
-                        break
-                    if not user_data['servers'][server_name]['pending']:
-                        raise web.HTTPError(500, "Image %s for user %s failed to launch" % (image, username))
-                    # FIXME: make this configurable
-                    # FIXME: Measure how long it takes for servers to start
-                    # and tune this appropriately
-                    await gen.sleep(min(1.4 ** i, 10))
+                # listen pending spawn (launch) events until server is ready
+                ready_event_container = []
+                buffer_list = []
+
+                async def handle_chunk(chunk):
+                    lines = b''.join(buffer_list + [chunk]).split(b'\n\n')
+                    # the last item in the list is usually an empty line ('')
+                    # but it can be the partial line after the last `\n\n`,
+                    # so put it back on the buffer to handle with the next chunk
+                    buffer_list[:] = [lines[-1]]
+                    for line in lines[:-1]:
+                        if line:
+                            line = line.decode('utf8', 'replace')
+                        if line and line.startswith('data:'):
+                            event = json.loads(line.split(':', 1)[1])
+                            if event_callback:
+                                await event_callback(event)
+                            if event.get('ready', False):
+                                # stream ends when server is ready
+                                ready_event_container.append(event)
+
+                url_parts = ['users', username]
+                if server_name:
+                    url_parts.extend(['servers', server_name, 'progress'])
                 else:
+                    url_parts.extend(['server/progress'])
+                progress_api_url = url_path_join(*url_parts)
+                resp_future = self.api_request(progress_api_url, streaming_callback=handle_chunk)
+                try:
+                    await gen.with_timeout(timedelta(seconds=self.launch_timeout), resp_future)
+                except gen.TimeoutError:
                     raise web.HTTPError(500, "Image %s for user %s took too long to launch" % (image, username))
+
+                # verify that the server is running!
+                if not ready_event_container:
+                    raise web.HTTPError(500, "Image %s for user %s failed to launch" % (image, username))
 
         except HTTPError as e:
             if e.response:
@@ -196,5 +228,5 @@ class Launcher(LoggingConfigurable):
                           format(_server_name, username, e, body))
             raise web.HTTPError(500, "Failed to launch image %s" % image)
 
-        data['url'] = self.hub_url + 'user/%s/%s' % (username, server_name)
+        data['url'] = url_path_join(self.hub_url, 'user/{}/{}'.format(username, server_name))
         return data

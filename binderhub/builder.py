@@ -509,8 +509,18 @@ class BuildHandler(BaseHandler):
                 username = launcher.unique_name_from_repo(self.repo_url)
                 server_name = ''
             try:
+                async def handle_progress_event(event):
+                    message = event['message']
+                    if message.startswith("20"):
+                        # remove timestamp and type info from message
+                        message = message.split('] ', 1)[-1]
+                    await self.emit({
+                        'phase': 'launching',
+                        'message': '{}\n'.format(message),
+                        })
                 server_info = await launcher.launch(image=self.image_name, username=username,
-                                                    server_name=server_name, repo_url=self.repo_url)
+                                                    server_name=server_name, repo_url=self.repo_url,
+                                                    event_callback=handle_progress_event)
                 LAUNCH_TIME.labels(
                     status='success', retries=i,
                 ).observe(time.perf_counter() - launch_starttime)

@@ -112,7 +112,6 @@ jupyterhub:
   singleuser:
     # start jupyter notebook
     cmd: jupyter-notebook
-    events: false
     storage:
       type: none
     memory:
