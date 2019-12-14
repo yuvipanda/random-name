@@ -11,3 +11,4 @@ python-json-logger
 jupyterhub
 jsonschema
 pycurl
+boto3

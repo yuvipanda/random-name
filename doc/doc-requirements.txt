@@ -20,3 +20,4 @@ python-json-logger
 jupyterhub
 jsonschema
 #pycurl Do not install for docs as it breaks the RTD build. Its primary use is for mocks in testing .
+boto3
