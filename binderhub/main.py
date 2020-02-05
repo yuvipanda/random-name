@@ -3,12 +3,13 @@ Main handler classes for requests
 """
 import urllib.parse
 
-from tornado.httpclient import AsyncHTTPClient, HTTPRequest
+from tornado.httpclient import HTTPRequest
 from tornado.web import HTTPError, authenticated
 from tornado.httputil import url_concat
 from tornado.log import app_log
 
 from .base import BaseHandler
+from .utils import ProxiedAsyncHTTPClient
 
 SPEC_NAMES = {
     "gh": "GitHub",
@@ -79,7 +80,7 @@ class ParameterizedMainHandler(BaseHandler):
 
             # Check if the nbviewer URL is valid and would display something
             # useful to the reader, if not we don't show it
-            client = AsyncHTTPClient()
+            client = ProxiedAsyncHTTPClient()
             # quote any unicode characters in the URL
             proto, rest = nbviewer_url.split("://")
             rest = urllib.parse.quote(rest)

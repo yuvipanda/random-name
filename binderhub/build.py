@@ -7,6 +7,7 @@ import datetime
 import json
 import threading
 from urllib.parse import urlparse
+import os
 
 from kubernetes import client, watch
 from tornado.ioloop import IOLoop
@@ -235,6 +236,24 @@ class Build:
         if self.git_credentials:
             env.append(client.V1EnvVar(name='GIT_CREDENTIAL_ENV', value=self.git_credentials))
 
+        # copy additional variables from current environment to new pod environment
+        proxy_environment_variables = [
+            'http_proxy',
+            'https_proxy',
+            'HTTP_PROXY',
+            'HTTPS_PROXY',
+            'no_proxy',
+            'NO_PROXY',
+        ]
+
+        for env_var in proxy_environment_variables:
+            try:
+                env.append(client.V1EnvVar(name=env_var, value=os.environ[env_var]))
+            except KeyError:
+                # skip the environment variable if it isn't present
+                pass
+
+        component_label = "binderhub-build"
         self.pod = client.V1Pod(
             metadata=client.V1ObjectMeta(
                 name=self.name,

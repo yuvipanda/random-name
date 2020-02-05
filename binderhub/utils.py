@@ -3,6 +3,12 @@ from collections import OrderedDict
 from hashlib import blake2b
 
 from traitlets import Integer, TraitError
+from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPResponse
+from typing import Any, Union, Awaitable
+from urllib.parse import urlparse
+import ipaddress
+import re
+import os
 
 
 def blake2b_hash_as_int(b):
@@ -111,6 +117,106 @@ class Cache(OrderedDict):
         if len(self) > self.max_size:
             first_key = next(iter(self))
             self.pop(first_key)
+
+
+class ProxiedAsyncHTTPClient():
+    """wrapper for automatic proxy support in tornado's non-blocking HTTP client.
+
+    see tornado.httplib.AsyncHTTPClient for usage/documentation
+    """
+    def __init__(self):
+        self.client = AsyncHTTPClient()
+
+        # use the first found proxy environment variable
+        self.http_proxy_host = None
+        self.http_proxy_port = None
+        for proxy_var in ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy']:
+            try:
+                parsed_proxy = urlparse(os.environ[proxy_var])
+                self.http_proxy_host = parsed_proxy.hostname
+                proxy_port = parsed_proxy.port
+                if proxy_port:  # can be None
+                    self.http_proxy_port = int(proxy_port)
+                else:
+                    self.http_proxy_port = 443 if parsed_proxy.scheme == 'https' else 80
+                break
+            except KeyError:
+                pass
+
+        # sort no_proxy environment variable into CIDR ranges (e.g. 10.0.0.0/8)
+        # and "simple" matches (e.g. my-institution.org or 10.1.2.3)
+        self.no_proxy_simple = []
+        self.no_proxy_cidr = []
+        no_proxy = None
+        for no_proxy_var in ['NO_PROXY', 'no_proxy']:
+            try:
+                no_proxy = os.environ[no_proxy_var]
+            except KeyError:
+                pass
+        if no_proxy:
+            for no_proxy_part in no_proxy.split(','):
+                if self._is_cidr_range(no_proxy_part):
+                    self.no_proxy_cidr.append(no_proxy_part)
+                else:
+                    self.no_proxy_simple.append(no_proxy_part)
+
+    @staticmethod
+    def _is_cidr_range(test_string):
+        range_parts = test_string.split('/')
+        if len(range_parts) != 2:
+            return False
+        ip, suffix = range_parts
+        ip_is_valid = ProxiedAsyncHTTPClient._is_ip(ip)
+        suffix_is_valid = bool(re.fullmatch('(?:[0-9]|[12][0-9]|3[0-2])', suffix))
+        return ip_is_valid and suffix_is_valid
+
+    @staticmethod
+    def _is_ip(test_string):
+        ip_digit = '(?:1[0-9]?[0-9]|[1-9][0-9]|[0-9]|2[0-4][0-9]|25[0-5])'
+        return bool(re.fullmatch(rf'{ip_digit}\.{ip_digit}\.{ip_digit}\.{ip_digit}', test_string))
+
+    def fetch(
+        self,
+        request: Union[str, "HTTPRequest"],
+        raise_error: bool = True,
+        **kwargs: Any
+    ) -> Awaitable["HTTPResponse"]:
+        """Executes a request, asynchronously returning an `HTTPResponse`.
+
+        see tornado.httpclient.AsyncHTTPClient.fetch for documentation
+        """
+        # convert request argument into HTTPRequest if necessary
+        if isinstance(request, str):
+            request = HTTPRequest(url=request, **kwargs)
+
+        # determine correct proxy host and port
+        parsed_url = urlparse(request.url)
+        if self.http_proxy_host and parsed_url.scheme in ('http', 'https'):
+            bypass_proxy = False
+            url_hostname = str(parsed_url.hostname)
+            if ProxiedAsyncHTTPClient._is_ip(url_hostname):
+                for no_proxy_cidr in self.no_proxy_cidr:
+                    if ipaddress.ip_address(url_hostname) in ipaddress.ip_network(no_proxy_cidr):
+                        bypass_proxy = True
+                        break
+            for no_proxy_simple in self.no_proxy_simple:
+                escaped_no_proxy = re.escape(no_proxy_simple)
+                # try to match as full domain or last part of it
+                # for example: when "my-institution.org" is given as part of no_proxy, try to match
+                # "my-institution.org" and subdomains like "www.my-institution.org"
+                if re.fullmatch(rf'(?:{escaped_no_proxy})|(?:.+\.{escaped_no_proxy})', url_hostname):
+                    bypass_proxy = True
+                    break
+
+            if not bypass_proxy:
+                request.proxy_host = self.http_proxy_host
+                request.proxy_port = self.http_proxy_port
+
+        # pass call on to AsyncHTTPClient's configured implementation
+        return self.client.fetch(request, raise_error)
+
+    def close(self):
+        return self.client.close()
 
 
 def url_path_join(*pieces):

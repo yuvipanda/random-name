@@ -11,6 +11,8 @@ from tornado.httputil import url_concat
 from traitlets.config import LoggingConfigurable
 from traitlets import Dict, Unicode, default
 
+from .utils import ProxiedAsyncHTTPClient
+
 DEFAULT_DOCKER_REGISTRY_URL = "https://registry.hub.docker.com"
 DEFAULT_DOCKER_AUTH_URL = "https://index.docker.io/v1"
 
@@ -187,7 +189,7 @@ class DockerRegistry(LoggingConfigurable):
 
     @gen.coroutine
     def get_image_manifest(self, image, tag):
-        client = httpclient.AsyncHTTPClient()
+        client = ProxiedAsyncHTTPClient()
         url = "{}/v2/{}/manifests/{}".format(self.url, image, tag)
         # first, get a token to perform the manifest request
         if self.token_url:

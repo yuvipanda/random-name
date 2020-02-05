@@ -19,13 +19,14 @@ import escapism
 from prometheus_client import Gauge
 
 from tornado import gen
-from tornado.httpclient import AsyncHTTPClient, HTTPError, HTTPRequest
+from tornado.httpclient import HTTPError, HTTPRequest
 from tornado.httputil import url_concat
 
 from traitlets import Dict, Unicode, Bool, default, List
 from traitlets.config import LoggingConfigurable
 
 from .utils import Cache
+from .utils import ProxiedAsyncHTTPClient
 
 GITHUB_RATE_LIMIT = Gauge('binderhub_github_rate_limit_remaining', 'GitHub rate limit remaining')
 SHA1_PATTERN = re.compile(r'[0-9a-f]{40}')
@@ -218,7 +219,7 @@ class ZenodoProvider(RepoProvider):
 
     @gen.coroutine
     def get_resolved_ref(self):
-        client = AsyncHTTPClient()
+        client = ProxiedAsyncHTTPClient()
         req = HTTPRequest("https://doi.org/{}".format(self.spec),
                           user_agent="BinderHub")
         r = yield client.fetch(req)
@@ -258,7 +259,7 @@ class FigshareProvider(RepoProvider):
 
     @gen.coroutine
     def get_resolved_ref(self):
-        client = AsyncHTTPClient()
+        client = ProxiedAsyncHTTPClient()
         req = HTTPRequest("https://doi.org/{}".format(self.spec),
                           user_agent="BinderHub")
         r = yield client.fetch(req)
@@ -548,7 +549,7 @@ class GitLabRepoProvider(RepoProvider):
             return self.resolved_ref
 
         namespace = urllib.parse.quote(self.namespace, safe='')
-        client = AsyncHTTPClient()
+        client = ProxiedAsyncHTTPClient()
         api_url = "https://{hostname}/api/v4/projects/{namespace}/repository/commits/{ref}".format(
             hostname=self.hostname,
             namespace=namespace,
@@ -691,7 +692,7 @@ class GitHubRepoProvider(RepoProvider):
 
     @gen.coroutine
     def github_api_request(self, api_url, etag=None):
-        client = AsyncHTTPClient()
+        client = ProxiedAsyncHTTPClient()
         if self.auth:
             # Add auth params. After logging!
             api_url = url_concat(api_url, self.auth)
