@@ -64,11 +64,29 @@ class RepoProvider(LoggingConfigurable):
         """
     )
 
+    allowed_specs = List(
+        help="""
+        List of specs to allow building.
+
+        Should be a list of regexes (not regex objects) that match specs which
+        should be allowed.
+
+        A spec is allowed if:
+        1. it matches allowed_specs and does not match banned_specs or
+        2. allowed_specs is unspecified and the spec does not match banned_specs.
+        """,
+        config=True
+    )
+
     banned_specs = List(
         help="""
         List of specs to blacklist building.
 
         Should be a list of regexes (not regex objects) that match specs which should be blacklisted
+
+        A spec is allowed if:
+        1. it matches allowed_specs and does not match banned_specs or
+        2. allowed_specs is unspecified and the spec does not match banned_specs.
         """,
         config=True
     )
@@ -109,13 +127,22 @@ class RepoProvider(LoggingConfigurable):
 
     def is_banned(self):
         """
-        Return true if the given spec has been banned
+        Return true if the given spec has been banned or explicitly
+        not allowed.
         """
         for banned in self.banned_specs:
             # Ignore case, because most git providers do not
             # count DS-100/textbook as different from ds-100/textbook
             if re.match(banned, self.spec, re.IGNORECASE):
                 return True
+        if self.allowed_specs and len(self.allowed_specs):
+            for allowed in self.allowed_specs:
+                if re.match(allowed, self.spec, re.IGNORECASE):
+                    return False
+            # allowed_specs is not empty but spec is not in it: banned.
+            return True
+        # allowed_specs unspecified or empty and spec does not match
+        # banned_specs: not banned.
         return False
 
     def has_higher_quota(self):
