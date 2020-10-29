@@ -1,27 +1,12 @@
-from collections.abc import Mapping
 import os
+
+from collections.abc import Mapping
 from functools import lru_cache
 from urllib.parse import urlparse
+
 import yaml
 
 c.BinderHub.hub_api_token = os.environ['JUPYTERHUB_API_TOKEN']
-
-
-def _merge_dictionaries(a, b):
-    """Merge two dictionaries recursively.
-
-    Simplified From https://stackoverflow.com/a/7205107
-    """
-    merged = a.copy()
-    for key in b:
-        if key in a:
-            if isinstance(a[key], Mapping) and isinstance(b[key], Mapping):
-                merged[key] = _merge_dictionaries(a[key], b[key])
-            else:
-                merged[key] = b[key]
-        else:
-            merged[key] = b[key]
-    return merged
 
 # memoize so we only load config once
 @lru_cache()
@@ -30,17 +15,10 @@ def _load_values():
 
     Memoized to only load once
     """
-    cfg = {}
-    for source in ('config', 'secret'):
-        path = f"/etc/binderhub/{source}/values.yaml"
-        if os.path.exists(path):
-            print(f"Loading {path}")
-            with open(path) as f:
-                values = yaml.safe_load(f)
-            cfg = _merge_dictionaries(cfg, values)
-        else:
-            print(f"No config at {path}")
-    return cfg
+    path = "/etc/binderhub/config/values.yaml"
+    print(f"Loading {path}")
+    with open(path) as f:
+        return yaml.safe_load(f)
 
 def get_value(key, default=None):
     """
