@@ -20,7 +20,7 @@ import tornado.options
 import tornado.log
 from tornado.log import app_log
 import tornado.web
-from traitlets import Unicode, Integer, Bool, Dict, validate, TraitError, Union, default
+from traitlets import Unicode, Integer, Bool, Dict, validate, TraitError, Union, default, Type
 from traitlets.config import Application
 from jupyterhub.services.auth import HubOAuthCallbackHandler
 from jupyterhub.traitlets import Callable
@@ -208,6 +208,15 @@ class BinderHub(Application):
         config=True,
     )
 
+    docker_registry_class = Type(
+        DockerRegistry,
+        help="""
+        Change this to support different Docker container registries.
+        The default works with GCR, ACR and DockerHub. Use `AWSElasticContainerRegistry` for AWS ECR.
+        """,
+        config=True
+    )
+      
     sticky_builds = Bool(
         False,
         help="""
@@ -570,7 +579,7 @@ class BinderHub(Application):
         ])
         jinja_env = Environment(loader=loader, **jinja_options)
         if self.use_registry and self.builder_required:
-            registry = DockerRegistry(parent=self)
+            registry = self.docker_registry_class(parent=self)
         else:
             registry = None
 

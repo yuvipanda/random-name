@@ -11,4 +11,4 @@ jupyterhub
 jsonschema
 pycurl
 tornado>=5.1
-
+boto3

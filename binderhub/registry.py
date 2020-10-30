@@ -1,15 +1,20 @@
 """
 Interaction with the Docker Registry
 """
+import asyncio
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from urllib.parse import urlparse
 
+import boto3
+import kubernetes.client
+import kubernetes.config
 from tornado import gen, httpclient
 from tornado.httputil import url_concat
+from traitlets import default, Dict, Unicode, Any, Integer
 from traitlets.config import LoggingConfigurable
-from traitlets import Dict, Unicode, default
 
 DEFAULT_DOCKER_REGISTRY_URL = "https://registry.hub.docker.com"
 DEFAULT_DOCKER_AUTH_URL = "https://index.docker.io/v1"
@@ -224,3 +229,81 @@ class DockerRegistry(LoggingConfigurable):
                 raise
         else:
             return json.loads(resp.body.decode("utf-8"))
+
+
+class AWSElasticContainerRegistry(DockerRegistry):
+    aws_region = Unicode(
+        config=True,
+        help="""
+        AWS region for ECR service
+        """,
+    )
+
+    ecr_client = Any()
+
+    @default("ecr_client")
+    def _get_ecr_client(self):
+        return boto3.client("ecr", region_name=self.aws_region)
+
+    username = "AWS"
+
+    executor_threads = Integer(
+        5,
+        config=True,
+        help="""The number of threads to use for blocking calls
+
+        Should generaly be a small number because we don't
+        care about high concurrency here, just not blocking the webserver.
+        This executor is not used for long-running tasks (e.g. builds).
+        """,
+    )
+
+    executor = Any()
+
+    @default("executor")
+    def _get_executor(self):
+        return ThreadPoolExecutor(self.executor_threads)
+
+    kube_client = Any()
+
+    @default("kube_client")
+    def _get_kube_client(self):
+        kubernetes.config.load_incluster_config()
+        return kubernetes.client.CoreV1Api()
+
+    async def get_image_manifest(self, image, tag):
+        image = image.split("/", 1)[1]
+        await asyncio.wrap_future(self.executor.submit(self._pre_get_image_manifest, image, tag))
+        return await super().get_image_manifest(image, tag)
+
+    def _pre_get_image_manifest(self, image, tag):
+        self._create_repository(image, tag)
+        self._refresh_password()
+
+    def _create_repository(self, image, tag):
+        try:
+            self.ecr_client.create_repository(repositoryName=image)
+            self.log.info("ECR repo {} created".format(image))
+        except self.ecr_client.exceptions.RepositoryAlreadyExistsException:
+            self.log.info("ECR repo {} already exists".format(image))
+
+    # An IAM principal is used to generate an auth token that is valid for 12 hours
+    # ref: https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html
+    # TODO: cache auth if not expired - authorizationData[i]["expiresAt"]
+    def _refresh_password(self):
+        auths = self.ecr_client.get_authorization_token()["authorizationData"]
+        auth = next(x for x in auths if x["proxyEndpoint"] == self.url)
+        self._patch_docker_config_secret(auth)
+        self.password = base64.b64decode(auth['authorizationToken']).decode("utf-8").split(':')[1]
+    
+    def _patch_docker_config_secret(self, auth):
+        """Patch binder-push-secret"""
+        secret_data = {"auths": {self.url: {"auth": auth["authorizationToken"]}}}
+        secret_data = base64.b64encode(json.dumps(secret_data).encode("utf8")).decode(
+            "utf8"
+        )
+        with open("/var/run/secrets/kubernetes.io/serviceaccount/namespace") as f:
+            namespace = f.read()
+        self.kube_client.patch_namespaced_secret(
+            "binder-push-secret", namespace, {"data": {"config.json": secret_data}}
+        )
