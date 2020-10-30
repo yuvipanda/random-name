@@ -1,0 +1,86 @@
+{% extends "page.html" %}
+
+{% block head %}
+<meta id="base-url" data-url="{{base_url}}">
+<meta id="badge-base-url" data-url="{{badge_base_url}}">
+<script src="{{static_url("dist/bundle.js")}}"></script>
+
+
+<!-- Social media previews -->
+<meta property="og:title" content="The Binder Project">
+<meta property="og:image" content="https://mybinder.org/static/images/logo_social.png">
+<meta property="og:description" content="Reproducible, sharable, interactive computing environments.">
+<meta property="og:image:width" content="1334">
+<meta property="og:image:height" content="700">
+<meta property="og:image:alt" content="The Binder Project Logo" />
+<meta name="twitter:card" content="summary_large_image">
+
+{{ super() }}
+{% endblock head %}
+
+{% block main %}
+<div id="main" class="container">
+  <div class="row">
+    <div class="col-lg-10 col-lg-offset-1">
+      {% block header %}
+      <div id="header" class="text-center">
+        <h3>Turn a Git repo into a collection of interactive notebooks</h3>
+        <div id="explanation">
+          Have a repository full of Jupyter notebooks? With Binder, open those notebooks in an executable environment, making your code immediately reproducible by anyone, anywhere.
+        </div>
+      </div>
+      {% endblock header %}
+
+      {% block form %}
+      <form id="build-form-v2" class="form" data-controller="launch">
+        <h4 id="form-header">Build and launch a repository</h4>
+        <div class="form-group form-group-lg">
+          <label for="repository">Repository URL or identifier</label>
+          <input class="form-control" type="text" id="repository" data-lpignore="true" placeholder="GitHub repository name or link" data-target="launch.url" aria-describedby="repositoryHelp">
+          <p id="repositoryHelp" class="help-block">A URL that identifies a github.com, gitlab.com, Zenodo repository or DOI of a repository.</p>
+        </div>
+        <button id="submit" class="btn btn-submit btn-submit-binder-v2" data-action="click->launch#launch" type="button">Launch</button>
+        <a href="/">Advanced options</a>
+      </form>
+      {% endblock form %}
+    </div>
+  </div>
+  {% block how_it_works %}
+  <div id="how-it-works">
+    <h3 class="text-center">How it works</h3>
+
+    <div class="row">
+      <div class="col-md-1 col-md-offset-2 point-container">
+        <span class="point point-orange">1</span>
+      </div>
+      <div class="col-md-7 front">
+        <span class="front-em">Enter your repository information</span><br />Provide in the above form a URL or a GitHub repository that contains Jupyter notebooks, as well as a branch, tag, or commit hash. Launch will build your Binder repository. If you specify a path to a notebook file, the notebook will be opened in your browser after building.
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-1 col-md-offset-2 point-container">
+        <span class="point point-red">2</span>
+      </div>
+      <div class="col-md-7 front">
+        <span class="front-em">We build a Docker image of your repository</span><br />Binder will search for a dependency file, such as requirements.txt or environment.yml, in the repository's root directory (<a href="http://mybinder.readthedocs.io/en/latest/using.html#preparing-a-repository-for-binder">more details on more complex dependencies in documentation</a>). The dependency files will be used to build a Docker image. If an image has already been built for the given repository, it will not be rebuilt. If a new commit has been made, the image will automatically be rebuilt.
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-1 col-md-offset-2 point-container">
+        <span class="point point-blue">3</span>
+      </div>
+      <div class="col-md-7 front">
+        <span class="front-em">Interact with your notebooks in a live environment!</span><br />A <a href="https://jupyterhub.readthedocs.io/en/latest/">JupyterHub</a> server will host your repository's contents. We offer you a reusable link and badge to your live repository that you can easily share with others.
+      </div>
+    </div>
+  </div>
+  {% endblock how_it_works %}
+
+</div>
+{% endblock main %}
+
+{% block footer %}
+{{ super () }}
+{% endblock footer %}

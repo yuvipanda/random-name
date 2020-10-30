@@ -38,6 +38,22 @@ class MainHandler(BaseHandler):
         )
 
 
+class LaunchFormHandler(BaseHandler):
+    """Launch form handler"""
+
+    @authenticated
+    def get(self):
+        self.render_template(
+            "beta.html",
+            badge_base_url=self.get_badge_base_url(),
+            base_url=self.settings['base_url'],
+            submit=False,
+            google_analytics_code=self.settings['google_analytics_code'],
+            google_analytics_domain=self.settings['google_analytics_domain'],
+            extra_footer_scripts=self.settings['extra_footer_scripts'],
+        )
+
+
 class ParameterizedMainHandler(BaseHandler):
     """Main handler that allows different parameter settings"""
 

@@ -29,6 +29,13 @@ import '../index.css';
 // See https://github.com/xtermjs/xterm.js/issues/1018 for more details
 import {fit} from './vendor/xterm/addons/fit';
 
+import { Application } from "stimulus"
+import { definitionsFromContext } from "stimulus/webpack-helpers"
+
+const application = Application.start()
+const context = require.context("./src/controllers", true, /\.js$/)
+application.load(definitionsFromContext(context))
+
 var BASE_URL = $('#base-url').data().url;
 var BADGE_BASE_URL = $('#badge-base-url').data().url;
 

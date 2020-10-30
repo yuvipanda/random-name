@@ -32,7 +32,7 @@ from .health import HealthHandler
 from .launcher import Launcher
 from .log import log_request
 from .registry import DockerRegistry
-from .main import MainHandler, ParameterizedMainHandler, LegacyRedirectHandler
+from .main import MainHandler, ParameterizedMainHandler, LegacyRedirectHandler, LaunchFormHandler
 from .repoproviders import (GitHubRepoProvider, GitRepoProvider,
                             GitLabRepoProvider, GistRepoProvider,
                             ZenodoProvider, FigshareProvider, HydroshareProvider,
@@ -667,6 +667,7 @@ class BinderHub(Application):
             (r'/about', AboutHandler),
             (r'/health', HealthHandler, {'hub_url': self.hub_url}),
             (r'/', MainHandler),
+            (r'/beta', LaunchFormHandler),
             (r'.*', Custom404),
         ]
         handlers = self.add_url_prefix(self.base_url, handlers)

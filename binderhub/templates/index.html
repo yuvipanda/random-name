@@ -96,7 +96,7 @@
 
           <div class="form-group col-md-2">
             <div class="btn-group" id="launch-buttons">
-              <button id="submit" class="btn-submit" type="submit">launch</button>
+              <button id="submit" class="btn-submit btn-submit-binder" type="submit">launch</button>
             </div>
           </div>
         </div>
@@ -205,6 +205,11 @@
     </div>
   </div>
   {% endblock how_it_works %}
+  <div data-controller="hello">
+    <input type="text">
+    <button>Greet</button>
+  </div>
+
 </div>
 {% endblock main %}
 

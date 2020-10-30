@@ -47,6 +47,16 @@ p > a:hover {
     padding: 55px;
     padding-top: 25px;
     padding-bottom: 20px;
+    border-radius: 6px;
+}
+
+#build-form-v2 {
+    color: rgb(50,50,50);
+    background: rgb(235, 236, 237);
+    padding: 40px;
+    padding-top: 25px;
+    padding-bottom: 20px;
+    border-radius: 6px;
 }
 
 
@@ -76,7 +86,23 @@ p > a:hover {
     padding-bottom: 24px;
 }
 
-.btn-submit{
+.btn-submit-binder-v2 {
+    background-color:rgb(243, 162, 83);
+    box-shadow: 1px 1px rgba(0,0,0,.075);
+    color:white;
+    margin-right: 8px;
+}
+
+.btn-submit-binder-v2:hover {
+  color: white;
+  background-color:hsl(29.6, 87%, 50.9%);
+}
+.btn-submit-binder-v2:focus {
+  color: white;
+  background-color:hsl(29.6, 87%, 50.9%);
+}
+
+.btn-submit-binder {
     background-color:rgb(243, 162, 83);
     box-shadow: 1px 1px rgba(0,0,0,.075);
     color:white;
