@@ -65,39 +65,31 @@
             <input class="form-control" type="text" id="repository" data-lpignore="true" placeholder="GitHub repository name or link"/>
           </div>
         </div>
+
         <div class="form-row row">
           <div class="form-group col-md-4">
             <label for="ref">Git branch, tag, or commit</label>
             <input class="form-control" type="text" id="ref" placeholder="master"/>
           </div>
-          <div class="form-group col-md-6">
-            <label for="filepath"></label>
-            <div class="input-group">
-              <input class="form-control" type="text" id="filepath"
-                placeholder=""
-              />
-              <div class="input-group-btn" id="url-or-file-btn">
-                <button type="button" class="btn btn-secondary dropdown-toggle"
-                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                  title="Specify whether the path to open is a URL or a file"
-                >
-                <span id="url-or-file-selected">
-                {{ 'URL' if urlpath else 'File' }}
-                </span>
-                <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
-                  <li class="dropdown-item"><a href="#">File</a></li>
-                  <li class="dropdown-item"><a href="#">URL</a></li>
-                </ul>
-              </div>
-            </div>
+          <div class="form-group col-md-4">
+            <label for="filepath">Path to a notebook file (optional)</label>
+            <input class="form-control" type="text" id="filepath"
+                   placeholder="Path to a notebook file (optional)"
+                   />
           </div>
+          <div class="form-group col-md-4">
+            <label for="filepath">User Interface</label>
+            <select class="form-control">
+              <option selected value="jupyter-notebook">Jupyter Notebook</option>
+              <option value="jupyter-lab">Jupyter Lab</option>
+              <option value="rstudio">R Studio</option>
+            </select>
+          </div>
+        </div>
 
-          <div class="form-group col-md-2">
-            <div class="btn-group" id="launch-buttons">
+        <div class="form-row row">
+          <div class="form-group col-md-12">
               <button id="submit" class="btn-submit" type="submit">launch</button>
-            </div>
           </div>
         </div>
 
