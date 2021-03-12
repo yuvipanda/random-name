@@ -18,7 +18,6 @@ import 'event-source-polyfill';
 
 import BinderImage from './src/image';
 import { markdownBadge, rstBadge } from './src/badge';
-import { getPathType, updatePathText } from './src/path';
 import { nextHelpText } from './src/loading';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -40,7 +39,7 @@ function update_favicon(path) {
     document.getElementsByTagName('head')[0].appendChild(link);
 }
 
-function v2url(providerPrefix, repository, ref, path, pathType) {
+function v2url(providerPrefix, repository, ref, filepath, urlpath) {
   // return a v2 url from a providerPrefix, repository, ref, and (file|url)path
   if (repository.length === 0) {
     // no repo, no url
@@ -52,9 +51,16 @@ function v2url(providerPrefix, repository, ref, path, pathType) {
   else {
     var url = window.location.origin + BASE_URL + 'v2/' + providerPrefix + '/' + repository + '/' + ref;
   }
-  if (path && path.length > 0) {
+  if (filepath && filepath.length > 0) {
     // encode the path, it will be decoded in loadingMain
-    url = url + '?' + pathType + 'path=' + encodeURIComponent(path);
+    url = url + '?' + 'filepath=' + encodeURIComponent(path);
+  }
+  if ((urlpath !== "notebook") && urlpath.length > 0) {
+    var connector = '?';
+    if (path && filepath.length > 0) {
+      connector = '&';
+    }
+    url = url + connector + 'urlpath=' + encodeURIComponent(urlpath);
   }
   return url;
 }
@@ -126,9 +132,10 @@ function getBuildFormValues() {
       providerPrefix === 'hydroshare') {
     ref = "";
   }
-  var path = $('#filepath').val().trim();
+  var filepath = $('#filepath').val().trim();
+  var urlpath = $('input[name="ui-option"]:checked').val();
   return {'providerPrefix': providerPrefix, 'repo': repo,
-          'ref': ref, 'path': path, 'pathType': getPathType()}
+          'ref': ref, 'filepath': filepath, 'urlpath': urlpath}
 }
 
 function updateUrls(formValues) {
@@ -139,8 +146,8 @@ function updateUrls(formValues) {
                formValues.providerPrefix,
                formValues.repo,
                formValues.ref,
-               formValues.path,
-               formValues.pathType
+               formValues.filepath,
+               formValues.urlpath
             );
 
   if ((url||'').trim().length > 0){
@@ -281,14 +288,6 @@ function indexMain() {
       updateUrls();
     });
 
-    $("#url-or-file-btn").find("a").click(function (evt) {
-      evt.preventDefault();
-
-      $("#url-or-file-selected").text($(this).text());
-      updatePathText();
-      updateUrls();
-    });
-    updatePathText();
     updateRepoText();
 
     $('#repository').on('keyup paste change', function(event) {updateUrls();});
@@ -296,6 +295,8 @@ function indexMain() {
     $('#ref').on('keyup paste change', function(event) {updateUrls();});
 
     $('#filepath').on('keyup paste change', function(event) {updateUrls();});
+
+    $("#ui-chooser").click(function(event) {updateUrls();});
 
     $('#toggle-badge-snippet').on('click', function() {
         var badgeSnippets = $('#badge-snippets');

@@ -71,32 +71,39 @@
             <input class="form-control" type="text" id="ref" placeholder="master"/>
           </div>
           <div class="form-group col-md-6">
-            <label for="filepath"></label>
-            <div class="input-group">
-              <input class="form-control" type="text" id="filepath"
-                placeholder=""
-              />
-              <div class="input-group-btn" id="url-or-file-btn">
-                <button type="button" class="btn btn-secondary dropdown-toggle"
-                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                  title="Specify whether the path to open is a URL or a file"
-                >
-                <span id="url-or-file-selected">
-                {{ 'URL' if urlpath else 'File' }}
-                </span>
-                <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
-                  <li class="dropdown-item"><a href="#">File</a></li>
-                  <li class="dropdown-item"><a href="#">URL</a></li>
-                </ul>
-              </div>
-            </div>
+            <label for="filepath">Path to a notebook file (optional)</label>
+            <input class="form-control" type="text" id="filepath"
+              placeholder="Path to a notebook file (optional)"
+            />
           </div>
 
           <div class="form-group col-md-2">
             <div class="btn-group" id="launch-buttons">
               <button id="submit" class="btn-submit" type="submit">launch</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Radio buttons to select User Interface -->
+        <div class="form-row row">
+          <div class="form-group col-md-3">
+            <label for="ui-chooser">Choose your User Interface:</label>
+          </div>
+          <div class="form-check form-check-inline" data-toggle="buttons" id="ui-chooser">
+            <div class="form-check col-md-3">
+              <label class="form-check-label">
+                <input class="form-check-input" type="radio" name="ui-option" id="notebook" value="notebook" autocomplete="off" checked> Classic Notebook
+              </label>
+            </div>
+            <div class="form-check col-md-3">
+              <label class="form-check-label">
+                <input class="form-check-input" type="radio" name="ui-option" id="lab" value="lab" autocomplete="off"> JupyterLab
+              </label>
+            </div>
+            <div class="form-check col-md-3">
+              <label class="form-check-label">
+                <input class="form-check-input" type="radio" name="ui-option" id="rstudio" value="rstudio" autocomplete="off"> RStudio
+              </label>
             </div>
           </div>
         </div>
