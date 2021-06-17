@@ -2,10 +2,13 @@
 
 import json
 from ipaddress import ip_address
+import os
 
 from http.client import responses
 from tornado import web
 from tornado.log import app_log
+from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPError
+
 from jupyterhub.services.auth import HubOAuthenticated, HubOAuth
 
 from . import __version__ as binder_version
@@ -19,6 +22,7 @@ class BaseHandler(HubOAuthenticated, web.RequestHandler):
         super().initialize()
         if self.settings['auth_enabled']:
             self.hub_auth = HubOAuth.instance(config=self.settings['traitlets_config'])
+            self.current_user_model = None
 
     def prepare(self):
         super().prepare()
@@ -71,14 +75,46 @@ class BaseHandler(HubOAuthenticated, web.RequestHandler):
         spec = self.request.path[idx + len(prefix) + 1:]
         return spec
 
-    def get_provider(self, provider_prefix, spec):
+    async def get_provider(self, provider_prefix, spec):
         """Construct a provider object"""
         providers = self.settings['repo_providers']
         if provider_prefix not in providers:
             raise web.HTTPError(404, "No provider found for prefix %s" % provider_prefix)
 
+        async def api_request(url, *args, **kwargs):
+            headers = kwargs.setdefault('headers', {})
+            headers.update({'Authorization': 'token %s' % self.hub_auth.api_token})
+            hub_api_url = os.getenv('JUPYTERHUB_API_URL', '') or self.hub_auth.api_url
+            request_url = hub_api_url + url
+            req = HTTPRequest(request_url, *args, **kwargs)
+
+            try:
+                return await AsyncHTTPClient().fetch(req)
+            except HTTPError as e:
+                app_log.error("Error accessing Hub API (using %s): %s", request_url, e)
+
+        async def get_current_user_model():
+            """Get the current user model.
+            The user auth_state is only accessible to admin users.
+            """
+            if not self.settings['auth_enabled']:
+                return None
+            
+            if self.current_user_model is None:
+                username = self.get_current_user()['name']
+                resp = await api_request(
+                    f'/users/{username}',
+                    method='GET',
+                )
+                self.current_user_model = json.loads(resp.body.decode('utf-8'))
+
+            return self.current_user_model
+
         return providers[provider_prefix](
-            config=self.settings['traitlets_config'], spec=spec)
+                    config=self.settings['traitlets_config'], 
+                    spec=spec,
+                    user_model=await get_current_user_model()
+                )
 
     def get_badge_base_url(self):
         badge_base_url = self.settings['badge_base_url']

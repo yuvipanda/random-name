@@ -229,7 +229,7 @@ class BuildHandler(BaseHandler):
 
         # get a provider object that encapsulates the provider and the spec
         try:
-            provider = self.get_provider(provider_prefix, spec=spec)
+            provider = await self.get_provider(provider_prefix, spec=spec)
         except Exception as e:
             app_log.exception("Failed to get provider for %s", key)
             await self.fail(str(e))

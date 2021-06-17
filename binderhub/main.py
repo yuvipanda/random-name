@@ -48,7 +48,7 @@ class ParameterizedMainHandler(BaseHandler):
         spec = self.get_spec_from_request(prefix)
         spec = spec.rstrip("/")
         try:
-            self.get_provider(provider_prefix, spec=spec)
+            await self.get_provider(provider_prefix, spec=spec)
         except HTTPError:
             raise
         except Exception as e:
