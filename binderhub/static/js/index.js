@@ -10,11 +10,11 @@
   pushing -> built
   pushing -> failed
 */
-import * as Terminal from 'xterm';
-import Clipboard from 'clipboard';
-import 'xterm/lib/xterm.css';
+import { Terminal } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import ClipboardJS from 'clipboard';
+import 'xterm/css/xterm.css';
 import 'bootstrap';
-import 'event-source-polyfill';
 
 import BinderImage from './src/image';
 import { markdownBadge, rstBadge } from './src/badge';
@@ -24,10 +24,6 @@ import { nextHelpText } from './src/loading';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/css/bootstrap-theme.min.css';
 import '../index.css';
-
-// FIXME: Can not seem to import this addon from npm
-// See https://github.com/xtermjs/xterm.js/issues/1018 for more details
-import {fit} from './vendor/xterm/addons/fit';
 
 var BASE_URL = $('#base-url').data().url;
 var BADGE_BASE_URL = $('#badge-base-url').data().url;
@@ -159,8 +155,6 @@ function build(providerSpec, log, path, pathType) {
   $('#build-progress .progress-bar').addClass('hidden');
   log.clear();
 
-  $('.on-build').removeClass('hidden');
-
   var image = new BinderImage(providerSpec);
 
   image.onStateChange('*', function(oldState, newState, data) {
@@ -178,7 +172,6 @@ function build(providerSpec, log, path, pathType) {
 
   image.onStateChange('building', function(oldState, newState, data) {
     $('#phase-building').removeClass('hidden');
-    log.show();
   });
 
   image.onStateChange('pushing', function(oldState, newState, data) {
@@ -193,7 +186,6 @@ function build(providerSpec, log, path, pathType) {
 
     // If we fail for any reason, show an error message and logs
     update_favicon(BASE_URL + "favicon_fail.ico");
-    log.show();
     if ($('div#loader-text').length > 0) {
       $('#loader').addClass("error");
       $('div#loader-text p.launching').html('Error loading ' + spec + '!<br /> See logs below for details.');
@@ -221,38 +213,24 @@ function build(providerSpec, log, path, pathType) {
 }
 
 function setUpLog() {
-  var log = new Terminal({
+  const log = new Terminal({
     convertEol: true,
     disableStdin: true
   });
+  const fitAddon = new FitAddon();
+  log.loadAddon(fitAddon);
 
-  log.open(document.getElementById('log'), false);
+  log.fit = function () {
+    fitAddon.fit();
+  };
+
+  log.open(parent=document.getElementById('log'), false);
   log.fit();
 
   $(window).resize(function() {
     log.fit();
   });
 
-  var $panelBody = $("div.panel-body");
-  log.show = function () {
-    $('#toggle-logs button').text('hide');
-    $panelBody.removeClass('hidden');
-  };
-
-  log.hide = function () {
-    $('#toggle-logs button').text('show');
-    $panelBody.addClass('hidden');
-  };
-
-  log.toggle = function () {
-    if ($panelBody.hasClass('hidden')) {
-      log.show();
-    } else {
-      log.hide();
-    }
-  };
-
-  $('#toggle-logs').click(log.toggle);
   return log;
 }
 
@@ -353,5 +331,5 @@ window.indexMain = indexMain;
 
 // Load the clipboard after the page loads so it can find the buttons it needs
 window.onload = function() {
-  new Clipboard('.clipboard');
+  new ClipboardJS('.clipboard');
 };

@@ -1,3 +1,6 @@
+import { NativeEventSource, EventSourcePolyfill } from 'event-source-polyfill';
+
+const EventSource = NativeEventSource || EventSourcePolyfill;
 var BASE_URL = $("#base-url").data().url;
 var BUILD_TOKEN = $("#build-token").data().token;
 

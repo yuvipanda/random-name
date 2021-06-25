@@ -1,39 +1,48 @@
 const webpack = require('webpack');
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const path = require('path');
+
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
-    context: __dirname + "/binderhub/static/",
+    mode: 'production',
+    context: path.resolve(__dirname, 'binderhub/static'),
     entry: "./js/index.js",
     output: {
-        path: __dirname + "/binderhub/static/dist/",
+        path: path.resolve(__dirname, 'binderhub/static/dist/'),
         filename: "bundle.js",
         publicPath: '/static/dist/'
     },
-    module: {
-        rules: [
-            {
-                test: /\.css$/,
-                use: ExtractTextPlugin.extract({
-                    fallback: "style-loader",
-                    use: "css-loader",
-                    // Set publicPath as relative path ("./").
-                    // By default it uses the `output.publicPath` ("/static/dist/"), when it rewrites the URLs in styles.css.
-                    // And it causes these files unavailabe if BinderHub has a different base_url than "/".
-                    publicPath: "./"
-                })
-            },
-            {
-                test: /\.(eot|woff|ttf|woff2|svg)$/,
-                loader: "file-loader"
-            }
-        ]
-    },
-    devtool: 'source-map',
     plugins: [
         new webpack.ProvidePlugin({
             $: 'jquery',
             jQuery: 'jquery',
         }),
-        new ExtractTextPlugin("styles.css"),
-    ]
+        new MiniCssExtractPlugin({
+            filename: 'styles.css'
+        }),
+    ],
+    module: {
+        rules: [
+            {
+                test: /\.css$/i,
+                use: [
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            // Set publicPath as relative path ("./").
+                            // By default it uses the `output.publicPath` ("/static/dist/"), when it rewrites the URLs in styles.css.
+                            // And it causes these files unavailabe if BinderHub has a different base_url than "/".
+                            publicPath: "./",
+                        },
+                    },
+                    'css-loader'
+                ],
+            },
+            {
+                test: /\.(eot|woff|ttf|woff2|svg)$/,
+                type: 'asset/resource'
+            }
+        ]
+    },
+    devtool: 'source-map',
 }
