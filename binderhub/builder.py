@@ -21,7 +21,7 @@ from tornado.log import app_log
 from prometheus_client import Counter, Histogram, Gauge
 
 from .base import BaseHandler
-from .build import Build, FakeBuild
+from .build import Build, FakeBuild, ProgressEvent
 from .utils import KUBE_REQUEST_TIMEOUT
 
 # Separate buckets for builds and launches.
@@ -420,31 +420,33 @@ class BuildHandler(BaseHandler):
 
                 # FIXME: If pod goes into an unrecoverable stage, such as ImagePullBackoff or
                 # whatever, we should fail properly.
-                if progress['kind'] == 'pod.phasechange':
-                    if progress['payload'] == 'Pending':
+                if progress.kind == ProgressEvent.Kind.BUILD_STATUS_CHANGE:
+                    if progress.payload == ProgressEvent.BuildStatus.PENDING:
                         # nothing to do, just waiting
                         continue
-                    elif progress['payload'] == 'Deleted':
+                    elif progress.payload == ProgressEvent.BuildStatus.COMPLETED:
                         event = {
                             'phase': 'built',
                             'message': 'Built image, launching...\n',
                             'imageName': image_name,
                         }
                         done = True
-                    elif progress['payload'] == 'Running':
+                    elif progress.payload == ProgressEvent.BuildStatus.RUNNING:
                         # start capturing build logs once the pod is running
                         if log_future is None:
                             log_future = pool.submit(build.stream_logs)
                         continue
-                    elif progress['payload'] == 'Succeeded':
+                    elif progress.payload == ProgressEvent.BuildStatus.COMPLETED:
                         # Do nothing, is ok!
                         continue
-                    else:
-                        # FIXME: message? debug?
-                        event = {'phase': progress['payload']}
-                elif progress['kind'] == 'log':
-                    # We expect logs to be already JSON structured anyway
-                    event = progress['payload']
+                    elif progress.payload == ProgressEvent.BuildStatus.FAILED:
+                        event = {'phase': 'failure'}
+                    elif progress.payload == ProgressEvent.BuildStatus.UNKNOWN:
+                        event = {'phase': 'unknown'}
+                elif progress.kind == ProgressEvent.Kind.LOG_MESSAGE:
+                    # The logs are coming out of repo2docker, so we expect
+                    # them to be JSON structured anyway
+                    event = progress.payload
                     payload = json.loads(event)
                     if payload.get('phase') in ('failure', 'failed'):
                         failed = True
