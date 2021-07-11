@@ -165,7 +165,7 @@ function build(providerSpec, log, path, pathType) {
 
   image.onStateChange('*', function(oldState, newState, data) {
     if (data.message !== undefined) {
-      log.write(data.message);
+      log.writeAndStore(data.message);
       log.fit();
     } else {
       console.log(data);
@@ -225,6 +225,7 @@ function setUpLog() {
     convertEol: true,
     disableStdin: true
   });
+  var logMessages = [];
 
   log.open(document.getElementById('log'), false);
   log.fit();
@@ -235,12 +236,12 @@ function setUpLog() {
 
   var $panelBody = $("div.panel-body");
   log.show = function () {
-    $('#toggle-logs button').text('hide');
+    $('#toggle-logs button.toggle').text('hide');
     $panelBody.removeClass('hidden');
   };
 
   log.hide = function () {
-    $('#toggle-logs button').text('show');
+    $('#toggle-logs button.toggle').text('show');
     $panelBody.addClass('hidden');
   };
 
@@ -252,7 +253,20 @@ function setUpLog() {
     }
   };
 
+  $('#view-raw-logs').on('click', function(ev) {
+    const blob = new Blob([logMessages.join('')], { type: 'text/plain' });
+    this.href = window.URL.createObjectURL(blob);
+    // Prevent the toggle action from firing
+    ev.stopPropagation();
+  });
+
   $('#toggle-logs').click(log.toggle);
+
+  log.writeAndStore = function (msg) {
+    logMessages.push(msg);
+    log.write(msg);
+  }
+
   return log;
 }
 
