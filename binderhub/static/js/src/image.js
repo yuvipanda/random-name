@@ -48,9 +48,8 @@ BinderImage.prototype.launch = function(url, token, path, pathType) {
     if (pathType === "file") {
       // trim trailing / on file paths
       path = path.replace(/(\/$)/g, "");
-      // /tree is safe because it allows redirect to files
-      // need more logic here if we support things other than notebooks
-      url = url + "/tree/" + encodeURI(path);
+      // /doc/tree is safe because it allows redirect to files
+      url = url + "/doc/tree/" + encodeURI(path);
     } else {
       // pathType === 'url'
       url = url + "/" + path;
