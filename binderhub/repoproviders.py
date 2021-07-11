@@ -246,9 +246,7 @@ class ZenodoProvider(RepoProvider):
         return resolved_spec
 
     def get_repo_url(self):
-        # While called repo URL, the return value of this function is passed
-        # as argument to repo2docker, hence we return the spec as is.
-        return self.spec
+        return f"https://doi.org/{self.spec}"
 
     async def get_resolved_ref_url(self):
         resolved_spec = await self.get_resolved_spec()
@@ -302,9 +300,7 @@ class FigshareProvider(RepoProvider):
         return resolved_spec
 
     def get_repo_url(self):
-        # While called repo URL, the return value of this function is passed
-        # as argument to repo2docker, hence we return the spec as is.
-        return self.spec
+        return f"https://doi.org/{self.spec}"
 
     async def get_resolved_ref_url(self):
         resolved_spec = await self.get_resolved_spec()

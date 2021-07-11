@@ -47,8 +47,9 @@ def test_spec_processing(spec, raw_user, raw_repo, raw_ref):
     assert raw_ref == unresolved_ref
 
 
-@pytest.mark.parametrize('spec,resolved_spec,resolved_ref,resolved_ref_url,build_slug', [
+@pytest.mark.parametrize('spec,repo,resolved_spec,resolved_ref,resolved_ref_url,build_slug', [
     ['10.5281/zenodo.3242074',
+     'https://doi.org/10.5281/zenodo.3242074',
      '10.5281/zenodo.3242074',
      '3242074',
      'https://doi.org/10.5281/zenodo.3242074',
@@ -56,12 +57,13 @@ def test_spec_processing(spec, raw_user, raw_repo, raw_ref):
     # 10.5281/zenodo.3242073 -> This DOI represents all versions, and will always resolve to the latest one
     # for now it is 3242074
     ['10.5281/zenodo.3242073',
+     'https://doi.org/10.5281/zenodo.3242073',
      '10.5281/zenodo.3242074',
      '3242074',
      'https://doi.org/10.5281/zenodo.3242074',
      'zenodo-3242074'],
 ])
-async def test_zenodo(spec, resolved_spec, resolved_ref, resolved_ref_url, build_slug):
+async def test_zenodo(spec, repo, resolved_spec, resolved_ref, resolved_ref_url, build_slug):
     provider = ZenodoProvider(spec=spec)
 
     # have to resolve the ref first
@@ -71,27 +73,29 @@ async def test_zenodo(spec, resolved_spec, resolved_ref, resolved_ref_url, build
     slug = provider.get_build_slug()
     assert slug == build_slug
     repo_url = provider.get_repo_url()
-    assert repo_url == spec
+    assert repo_url == repo
     ref_url = await provider.get_resolved_ref_url()
     assert ref_url == resolved_ref_url
     spec = await provider.get_resolved_spec()
     assert spec == resolved_spec
 
 
-@pytest.mark.parametrize('spec,resolved_spec,resolved_ref,resolved_ref_url,build_slug', [
+@pytest.mark.parametrize('spec,repo,resolved_spec,resolved_ref,resolved_ref_url,build_slug', [
     ['10.6084/m9.figshare.9782777.v1',
+     'https://doi.org/10.6084/m9.figshare.9782777.v1',
      '10.6084/m9.figshare.9782777.v1',
      '9782777.v1',
      'https://doi.org/10.6084/m9.figshare.9782777.v1',
      'figshare-9782777.v1'],
     # spec without version is accepted as version 1 - check FigshareProvider.get_resolved_ref()
     ['10.6084/m9.figshare.9782777',
+     'https://doi.org/10.6084/m9.figshare.9782777',
      '10.6084/m9.figshare.9782777.v1',
      '9782777.v1',
      'https://doi.org/10.6084/m9.figshare.9782777.v1',
      'figshare-9782777.v1'],
 ])
-async def test_figshare(spec, resolved_spec, resolved_ref, resolved_ref_url, build_slug):
+async def test_figshare(spec, repo, resolved_spec, resolved_ref, resolved_ref_url, build_slug):
     provider = FigshareProvider(spec=spec)
 
     # have to resolve the ref first
@@ -101,7 +105,7 @@ async def test_figshare(spec, resolved_spec, resolved_ref, resolved_ref_url, bui
     slug = provider.get_build_slug()
     assert slug == build_slug
     repo_url = provider.get_repo_url()
-    assert repo_url == spec
+    assert repo_url == repo
     ref_url = await provider.get_resolved_ref_url()
     assert ref_url == resolved_ref_url
     spec = await provider.get_resolved_spec()
