@@ -14,7 +14,8 @@
                 "Zenodo",
                 "Figshare",
                 "Hydroshare",
-                "Dataverse"
+                "Dataverse",
+                "SWHID"
             ],
             "description": "Provider for the repository being launched"
         },

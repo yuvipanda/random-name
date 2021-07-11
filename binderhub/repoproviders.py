@@ -967,3 +967,41 @@ class GistRepoProvider(GitHubRepoProvider):
 
     def get_build_slug(self):
         return self.gist_id
+
+
+class SWHIDProvider(RepoProvider):
+    """Provide contents of a SWHID record
+
+    Users must provide a spec consisting of the SWHID of a directory or revision.
+    """
+    name = Unicode("SWHID")
+
+    async def get_resolved_ref(self):
+        client = AsyncHTTPClient()
+        req = HTTPRequest("https://archive.softwareheritage.org/api/1/known/",
+                          method="POST",
+                          headers={'content-type': 'application/json'},
+                          body=json.dumps([self.spec]),
+                          user_agent="BinderHub")
+        r = await client.fetch(req)
+        r.rethrow()
+
+        response = json.loads(r.body)
+        if response[self.spec]["known"]:
+            return self.spec
+        raise RuntimeError(f"Unknown SWHID {self.spec}")
+
+
+    async def get_resolved_spec(self):
+        return self.spec
+
+    def get_repo_url(self):
+        # While called repo URL, the return value of this function is passed
+        # as argument to repo2docker, hence we return the spec as is.
+        return self.spec
+
+    async def get_resolved_ref_url(self):
+        return self.spec
+
+    def get_build_slug(self):
+        return "swh-{}".format(self.spec)

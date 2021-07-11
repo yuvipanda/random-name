@@ -113,7 +113,7 @@ function getBuildFormValues() {
 
   var ref = $('#ref').val().trim() || $("#ref").attr("placeholder");
   if (providerPrefix === 'zenodo' || providerPrefix === 'figshare' || providerPrefix === 'dataverse' ||
-      providerPrefix === 'hydroshare') {
+      providerPrefix === 'hydroshare' || providerPrefix === 'swh') {
     ref = "";
   }
   var path = $('#filepath').val().trim();

@@ -12,6 +12,7 @@ from binderhub.repoproviders import (
     GitLabRepoProvider,
     GitRepoProvider,
     HydroshareProvider,
+    SWHIDProvider,
     ZenodoProvider,
     strip_suffix,
     tokenize_spec,
@@ -490,3 +491,27 @@ def test_gist_secret():
 
     provider = GistRepoProvider(spec=spec, allow_secret_gist=True)
     assert IOLoop().run_sync(provider.get_resolved_ref) is not None
+
+
+@pytest.mark.parametrize('spec,resolved_spec,resolved_ref,resolved_ref_url,build_slug', [
+    ['swh:1:rev:c30614ec4587418fb264efb466cba58991029f16',
+     'swh:1:rev:c30614ec4587418fb264efb466cba58991029f16',
+     'swh:1:rev:c30614ec4587418fb264efb466cba58991029f16',
+     'swh:1:rev:c30614ec4587418fb264efb466cba58991029f16',
+     'swh-swh:1:rev:c30614ec4587418fb264efb466cba58991029f16'],
+])
+async def test_swh(spec, resolved_spec, resolved_ref, resolved_ref_url, build_slug):
+    provider = SWHIDProvider(spec=spec)
+
+    # have to resolve the ref first
+    ref = await provider.get_resolved_ref()
+    assert ref == resolved_ref
+
+    slug = provider.get_build_slug()
+    assert slug == build_slug
+    repo_url = provider.get_repo_url()
+    assert repo_url == spec
+    ref_url = await provider.get_resolved_ref_url()
+    assert ref_url == resolved_ref_url
+    spec = await provider.get_resolved_spec()
+    assert spec == resolved_spec
