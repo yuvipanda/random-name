@@ -20,6 +20,23 @@ from binderhub.repoproviders import (
 sha1_validate = GitRepoProvider.sha1_validate
 
 
+@pytest.mark.parametrize(
+    'required_method', [
+        "get_build_slug",
+        "get_repo_url",
+        "get_resolved_spec",
+        "get_resolved_ref",
+        "get_resolved_ref_url",
+    ]
+)
+async def test_repo_provider_methods(app, required_method):
+    """
+    Test if each repo provider has required methods defined
+    """
+    for rp in app.repo_providers.values():
+        assert callable(getattr(rp, required_method, None)), f"{rp.__name__} doesn't have method {required_method}"
+
+
 # General string processing
 @pytest.mark.parametrize(
     'raw_text, suffix, clean_text', [
