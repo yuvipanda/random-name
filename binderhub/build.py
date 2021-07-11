@@ -6,7 +6,10 @@ from collections import defaultdict
 import datetime
 import json
 import threading
+from typing import Union
 from urllib.parse import urlparse
+from enum import Enum
+import warnings
 
 from kubernetes import client, watch
 from tornado.ioloop import IOLoop
@@ -14,6 +17,33 @@ from tornado.log import app_log
 
 from .utils import rendezvous_rank, KUBE_REQUEST_TIMEOUT
 
+
+class ProgressEvent:
+    """
+    Represents an event that happened in the build process
+    """
+    class Kind(Enum):
+        """
+        The kind of event that happened
+        """
+        BUILD_STATUS_CHANGE = 1
+        LOG_MESSAGE = 2
+
+    class BuildStatus(Enum):
+        """
+        The state the build is now in
+
+        Used when `kind` is `Kind.BUILD_STATUS_CHANGE`
+        """
+        PENDING = 1
+        RUNNING = 2
+        COMPLETED = 3
+        FAILED = 4
+        UNKNOWN = 5
+
+    def __init__(self, kind: Kind, payload: Union[str, BuildStatus]):
+        self.kind = kind
+        self.payload = payload
 
 class Build:
     """Represents a build of a git repository into a docker image.
@@ -227,9 +257,11 @@ class Build:
             app_log.info("Deleted %i/%i build pods", deleted, len(builds))
         app_log.debug("Build phase summary: %s", json.dumps(phases, sort_keys=True, indent=1))
 
-    def progress(self, kind, obj):
-        """Put the current action item into the queue for execution."""
-        self.main_loop.add_callback(self.q.put, {'kind': kind, 'payload': obj})
+    def progress(self, kind: ProgressEvent.Kind, payload: str):
+        """
+        Put current progress info into the queue on the main thread
+        """
+        self.main_loop.add_callback(self.q.put, ProgressEvent(kind, payload))
 
     def get_affinity(self):
         """Determine the affinity term for the build pod.
@@ -400,11 +432,31 @@ class Build:
                     _request_timeout=KUBE_REQUEST_TIMEOUT,
                 ):
                     if f['type'] == 'DELETED':
-                        self.progress('pod.phasechange', 'Deleted')
+                        # Assume this is a successful completion
+                        self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, ProgressEvent.BuildStatus.COMPLETED)
                         return
                     self.pod = f['object']
                     if not self.stop_event.is_set():
-                        self.progress('pod.phasechange', self.pod.status.phase)
+                        # Account for all the phases kubernetes pods can be in
+                        # Pending, Running, Succeeded, Failed, Unknown
+                        # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+                        phase = self.pod.status.phase
+                        if phase == 'Pending':
+                            self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, ProgressEvent.BuildStatus.PENDING)
+                        elif phase == 'Running':
+                            self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, ProgressEvent.BuildStatus.RUNNING)
+                        elif phase == 'Succeeded':
+                            # Do nothing! We will clean this up, and send a 'Completed' progress event
+                            # when the pod has been deleted
+                            pass
+                        elif phase == 'Failed':
+                            self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, ProgressEvent.BuildStatus.FAILED)
+                        elif phase == 'Unknown':
+                            self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, ProgressEvent.BuildStatus.UNKNOWN)
+                        else:
+                            # This shouldn't happen, unless k8s introduces new Phase types
+                            warnings.warn(f"Found unknown phase {phase} when building {self.name}")
+
                     if self.pod.status.phase == 'Succeeded':
                         self.cleanup()
                     elif self.pod.status.phase == 'Failed':
@@ -450,7 +502,7 @@ class Build:
                     'message': line,
                 })
 
-            self.progress('log', line)
+            self.progress(ProgressEvent.Kind.LOG_MESSAGE, line)
         else:
             app_log.info("Finished streaming logs of %s", self.name)
 
@@ -483,7 +535,7 @@ class FakeBuild(Build):
     Fake Building process to be able to work on the UI without a running Minikube.
     """
     def submit(self):
-        self.progress('pod.phasechange', 'Running')
+        self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, 'Running')
         return
 
     def stream_logs(self):
@@ -493,7 +545,7 @@ class FakeBuild(Build):
             if self.stop_event.is_set():
                 app_log.warning("Stopping logs of %s", self.name)
                 return
-            self.progress('log',
+            self.progress(ProgressEvent.Kind.LOG_MESSAGE,
                 json.dumps({
                     'phase': phase,
                     'message': f"{phase}...\n",
@@ -510,7 +562,7 @@ class FakeBuild(Build):
                     'message': f"Step {i+1}/10\n",
                 })
             )
-        self.progress('pod.phasechange', 'Succeeded')
+        self.progress(ProgressEvent.Kind.BUILD_STATUS_CHANGE, 'Succeeded')
         self.progress('log', json.dumps({
                 'phase': 'Deleted',
                 'message': f"Deleted...\n",
