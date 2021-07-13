@@ -21,7 +21,6 @@ from tornado.log import app_log
 from prometheus_client import Counter, Histogram, Gauge
 
 from .base import BaseHandler
-from .build import Build, FakeBuild
 from .utils import KUBE_REQUEST_TIMEOUT
 
 # Separate buckets for builds and launches.
@@ -368,7 +367,7 @@ class BuildHandler(BaseHandler):
         else:
             push_secret = None
 
-        BuildClass = FakeBuild if self.settings.get('fake_build') else Build
+        BuildClass = self.settings.get('build_class')
 
         appendix = self.settings['appendix'].format(
             binder_url=self.binder_launch_host + self.binder_request,

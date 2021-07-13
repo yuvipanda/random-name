@@ -31,6 +31,7 @@ from traitlets import (
     TraitError,
     Unicode,
     Union,
+    Type,
     default,
     observe,
     validate,
@@ -245,6 +246,16 @@ class BinderHub(Application):
 
         Set to false to use only local docker images. Useful when running
         in a single node.
+        """,
+        config=True
+    )
+
+    build_class = Type(
+        Build,
+        help="""
+        The class used to build repo2docker images.
+        
+        Must inherit from binderhub.build.Build
         """,
         config=True
     )
@@ -751,6 +762,7 @@ class BinderHub(Application):
                 "repo_providers": self.repo_providers,
                 "rate_limiter": RateLimiter(parent=self),
                 "use_registry": self.use_registry,
+                "build_class": self.build_class,
                 "registry": registry,
                 "traitlets_config": self.config,
                 "google_analytics_code": self.google_analytics_code,
