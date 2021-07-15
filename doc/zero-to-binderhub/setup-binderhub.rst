@@ -27,30 +27,11 @@ the container registry. For more information on getting a registry password, see
 :ref:`setup-registry`. We'll copy/paste the contents of this file in the steps
 below.
 
-Create two random tokens by running the following commands then copying the
-outputs.::
-
-    openssl rand -hex 32
-    openssl rand -hex 32
-
-.. note::
-
-   This command is run **twice** because we need two different tokens.
-
 Create ``secret.yaml`` file
 ---------------------------
 
-Create a file called ``secret.yaml`` and add the following::
-
-  jupyterhub:
-    hub:
-      services:
-        binder:
-          apiToken: "<output of FIRST `openssl rand -hex 32` command>"
-    proxy:
-      secretToken: "<output of SECOND `openssl rand -hex 32` command>"
-
-Next, we'll configure this file to connect with our registry.
+Create a file called ``secret.yaml``, we'll set sensitive values to pass to our
+Helm chart in this file.
 
 If you are using ``gcr.io``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
