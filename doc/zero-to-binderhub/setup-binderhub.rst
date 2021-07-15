@@ -48,24 +48,17 @@ need to insert. Note that the first line is not indented at all::
     # paste the content after `password: |` below
     password: |
       {
-      "type": "<REPLACE>",
-      "project_id": "<REPLACE>",
-      "private_key_id": "<REPLACE>",
-      "private_key": "<REPLACE>",
-      "client_email": "<REPLACE>",
-      "client_id": "<REPLACE>",
-      "auth_uri": "<REPLACE>",
-      "token_uri": "<REPLACE>",
-      "auth_provider_x509_cert_url": "<REPLACE>",
-      "client_x509_cert_url": "<REPLACE>"
+        "type": "<REPLACE>",
+        "project_id": "<REPLACE>",
+        "private_key_id": "<REPLACE>",
+        "private_key": "<REPLACE>",
+        "client_email": "<REPLACE>",
+        "client_id": "<REPLACE>",
+        "auth_uri": "<REPLACE>",
+        "token_uri": "<REPLACE>",
+        "auth_provider_x509_cert_url": "<REPLACE>",
+        "client_x509_cert_url": "<REPLACE>"
       }
-
-
-.. tip::
-
-   * The content you put just after ``password: |`` must all line up at the same
-     tab level.
-   * Don't forget the ``|`` after the ``password:`` label.
 
 If you are using Docker Hub
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
