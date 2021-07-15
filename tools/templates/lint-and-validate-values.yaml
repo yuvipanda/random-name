@@ -70,7 +70,6 @@ jupyterhub:
     services:
       binder:
         admin: true
-        apiToken: dummy-binder-secret-token
   singleuser:
     cmd: jupyter-notebook
     events: false

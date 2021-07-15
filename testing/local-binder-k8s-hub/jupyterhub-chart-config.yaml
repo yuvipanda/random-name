@@ -12,16 +12,15 @@ custom:
     allowOrigin: "*"
 
 hub:
-  # cookieSecret must be a hex encoded even length string
-  cookieSecret: "cccccccccc"
   db:
     type: "sqlite-memory"
   services:
     binder:
+      # apiToken is also configured in
+      # testing/local-binder-k8s-hub/binderhub_config.py
       apiToken: "dummy-binder-secret-token"
 
 proxy:
-  secretToken: "dummy-proxy-secret-token"
   service:
     type: NodePort
     nodePorts:
